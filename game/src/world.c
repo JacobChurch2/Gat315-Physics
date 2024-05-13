@@ -1,30 +1,47 @@
 #include "world.h"
+#include "body.h"
+
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
-Body* bodies = NULL;
-int bodyCount = 0;
+ncBody* ncBodies = NULL;
+int ncBodyCount = 0;
+Vector2 ncGravity;
 
-Body* CreateBody() 
+ncBody* CreateBody(Vector2 position, float mass, ncBodyType bodyType) 
 {
-	Body* newBody = (Body*)malloc(sizeof(Body));
-	assert(newBody);
+	ncBody* body = (ncBody*)malloc(sizeof(ncBody));
+	assert(body);
 
-	newBody->prev = NULL;
-	newBody->next = bodies;
+	memset(body, 0, sizeof(ncBody));
+	body->position = position;
+	body->mass = mass;
+	body->inverseMass = (bodyType == BT_DYNAMIC) ? 1 / mass : 0;
+	body->type = bodyType;
 
-	if (bodies) 
-	{
-		bodies->prev = newBody;
-	}
-
-	bodies = newBody;
-	bodyCount++;
-
-	return newBody;
+	return body;
 }
 
-void DestroyBody(Body* body)
+void AddBody(ncBody* body) 
+{
+	assert(body);
+
+	//add element to linked list
+	body->prev = NULL;
+	body->next = ncBodies;
+
+	if (ncBodies)
+	{
+		ncBodies->prev = body;
+	}
+
+	//set head of element to new element
+	ncBodies = body;
+	ncBodyCount++;
+}
+
+void DestroyBody(ncBody* body)
 {
 	if (!body) return;
 
@@ -38,12 +55,17 @@ void DestroyBody(Body* body)
 		body->next->prev = body->prev;
 	}
 
-	if (bodies == body) 
+	if (ncBodies == body) 
 	{
-		bodies = body->next;
+		ncBodies = body->next;
 	}
 
-	bodyCount--;
+	ncBodyCount--;
 
 	free(body);
+}
+
+void DestoryAllBodies() 
+{
+
 }
