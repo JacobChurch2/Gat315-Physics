@@ -6,6 +6,8 @@
 #include "render.h"
 #include "editor.h"
 #include "spring.h"
+#include "collision.h"
+#include "contact.h"
 #include "raylib.h"
 #include "raymath.h"
 
@@ -131,7 +133,7 @@ int main(void)
 
 			body->damping = 0; // 2.5f;
 			body->gravityScale = ncEditorData.GravityScaleValue;
-			body->color = RED;
+			body->color = PINK;
 
 			AddBody(body);
 
@@ -145,7 +147,8 @@ int main(void)
 		{
 			if (selectedBody && selectedBody != connectBody)
 			{
-				ncSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), 20);
+				//ncSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), 20);
+				ncSpring_t* spring = CreateSpring(connectBody, selectedBody, 5, 20);
 				AddSpring(spring);
 			}
 		}
@@ -175,6 +178,10 @@ int main(void)
 			Step(body, dt);
 		}
 
+		//collision
+		ncContact_t* contacts = NULL;
+		CreateContacts(ncBodies, &contacts);
+
 		//render
 		BeginDrawing();
 		ClearBackground(BLACK);
@@ -189,7 +196,14 @@ int main(void)
 		for (ncBody* body = ncBodies; body; body = body->next) 
 		{
 			Vector2 screen = ConvertWorldToScreen(body->position);
-			DrawCircle((int)screen.x, (int)screen.y, (ConvertWorldToPixel(body->mass)), body->color);
+			DrawCircle((int)screen.x, (int)screen.y, ConvertWorldToPixel(body->mass * 0.5f), body->color);
+		}
+
+		// draw contacts
+		for (ncContact_t* contact = contacts; contact; contact = contact->next)
+		{
+			Vector2 screen = ConvertWorldToScreen(contact->body1->position);
+			DrawCircle((int)screen.x, (int)screen.y, ConvertWorldToPixel(contact->body1->mass * 0.5f), RED);
 		}
 
 		//draw springs
