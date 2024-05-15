@@ -106,11 +106,12 @@ int main(void)
 	SetTargetFPS(60);
 
 	//initialize world
-	ncGravity = (Vector2){ 0, -1 };
 
 	//game loop
 	while (!WindowShouldClose())
 	{
+		ncGravity = (Vector2){ 0, -ncEditorData.GravityValue};
+
 		//update
 		float dt = GetFrameTime();
 		float fps = (float)GetFPS();
@@ -127,29 +128,31 @@ int main(void)
 			DrawCircleLines(screen.x, screen.y, ConvertWorldToPixel(selectedBody->mass) + 5, YELLOW);
 		}
 
-		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-		{
-			ncBody* body = CreateBody(ConvertScreenToWorld(position), ncEditorData.MassMinValue, ncEditorData.BodyTypeActive);
-
-			body->damping = 0; // 2.5f;
-			body->gravityScale = ncEditorData.GravityScaleValue;
-			body->color = PINK;
-
-			AddBody(body);
-
-		}
-
-		//connectspring
-		if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedBody) connectBody = selectedBody;
-		if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && connectBody) DrawLineBodyToPosition(connectBody, position);
-
-		if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && connectBody) 
-		{
-			if (selectedBody && selectedBody != connectBody)
+		if (!ncEditorIntersect) {
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
-				//ncSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), 20);
-				ncSpring_t* spring = CreateSpring(connectBody, selectedBody, 5, 20);
-				AddSpring(spring);
+				ncBody* body = CreateBody(ConvertScreenToWorld(position), ncEditorData.MassValue, ncEditorData.BodyTypeActive);
+
+				body->damping = ncEditorData.DampingValue; // 2.5f;
+				body->gravityScale = ncEditorData.GravityScaleValue;
+
+				body->color = PINK;
+
+				AddBody(body);
+
+			}
+
+			//connectspring
+			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedBody) connectBody = selectedBody;
+			if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && connectBody) DrawLineBodyToPosition(connectBody, position);
+
+			if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && connectBody)
+			{
+				if (selectedBody && selectedBody != connectBody)
+				{
+					ncSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), ncEditorData.kValue);
+					AddSpring(spring);
+				}
 			}
 		}
 
@@ -169,7 +172,7 @@ int main(void)
 		}*/
 
 		//applyForce
-		ApplyGravitation(ncBodies, 10);
+		ApplyGravitation(ncBodies, ncEditorData.GravitationValue);
 		ApplySpringForce(ncSprings);
 
 		//update bodies
