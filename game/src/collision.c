@@ -61,12 +61,50 @@ ncContact_t* GenerateContact(ncBody* body1, ncBody* body2)
 	return contact;
 }
 
-void SeparateContacts(ncContact_t* contacts) 
+void SeparateContacts(ncContact_t* contacts)
 {
+	// Loop through each contact
+	for (ncContact_t* contact = contacts; contact; contact = contact->next)
+	{
+		// Calculate total inverse mass of the bodies involved
+		float totalInverseMass = contact->body1->inverseMass + contact->body2->inverseMass;
 
+		// Calculate the separation vector based on normal and depth
+		Vector2 separation = Vector2Scale(contact->normal, (contact->depth / totalInverseMass));
+
+		// Move body1 away from body2 proportionally based on inverse mass
+		contact->body1->position = Vector2Add(contact->body1->position, Vector2Scale(separation, contact->body1->inverseMass));
+
+		// Move body2 away from body1 proportionally based on inverse mass (with negative sign)
+		contact->body2->position = Vector2Add(contact->body2->position, Vector2Scale(separation, -contact->body2->inverseMass));
+	}
 }
 
-void ResolveContacts(ncContact_t* contacts) 
+void ResolveContacts(ncContact_t* contacts)
 {
+	// Loop through each contact
+	for (ncContact_t* contact = contacts; contact; contact = contact->next)
+	{
+		// Calculate relative velocity
+		Vector2 rv = Vector2Subtract(contact->body1->velocity, contact->body2->velocity);
 
+		// Calculate relative velocity along the contact normal
+		float nv = Vector2DotProduct(rv, contact->normal);
+
+		// If objects are moving apart, no need for resolution
+		if (nv > 0) continue;
+
+		// Calculate impulse scalar
+		float tim = contact->body1->inverseMass + contact->body2->inverseMass;
+		float im = (-(1 + contact->restitution) * nv / tim);
+
+		// Calculate impulse vector
+		Vector2 iv = Vector2Scale(contact->normal, im);
+
+		// Apply impulse to body1
+		ApplyForce(contact->body1, iv, FM_IMPULSE);
+
+		// Apply impulse in opposite direction to body2
+		ApplyForce(contact->body2, Vector2Negate(iv), FM_IMPULSE);
+	}
 }

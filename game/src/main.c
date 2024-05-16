@@ -129,12 +129,13 @@ int main(void)
 		}
 
 		if (!ncEditorIntersect) {
-			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_SHIFT)))
 			{
 				ncBody* body = CreateBody(ConvertScreenToWorld(position), ncEditorData.MassValue, ncEditorData.BodyTypeActive);
 
 				body->damping = ncEditorData.DampingValue; // 2.5f;
 				body->gravityScale = ncEditorData.GravityScaleValue;
+				body->restitution = 0.8f;
 
 				body->color = PINK;
 
@@ -184,6 +185,8 @@ int main(void)
 		//collision
 		ncContact_t* contacts = NULL;
 		CreateContacts(ncBodies, &contacts);
+		SeparateContacts(contacts);
+		ResolveContacts(contacts);
 
 		//render
 		BeginDrawing();
