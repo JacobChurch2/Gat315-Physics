@@ -100,6 +100,10 @@ int main(void)
 {
 	ncBody* selectedBody = NULL;
 	ncBody* connectBody = NULL;
+	ncContact_t* contacts = NULL;
+
+	float fixedTimestep = 1.0 / 50;
+	float timeAccumlator = 0;
 
 	InitWindow(1280, 720, "Physics Engine");
 	InitEditor();
@@ -110,11 +114,12 @@ int main(void)
 	//game loop
 	while (!WindowShouldClose())
 	{
-		ncGravity = (Vector2){ 0, -ncEditorData.GravityValue};
+		ncGravity = (Vector2){ 0, -ncEditorData.GravityValue };
 
 		//update
 		float dt = GetFrameTime();
 		float fps = (float)GetFPS();
+
 
 		Vector2 position = GetMousePosition();
 		ncScreenZoom += GetMouseWheelMove() * 0.2f;
@@ -122,7 +127,7 @@ int main(void)
 		UpdateEditor(position);
 
 		selectedBody = GetBodyIntersect(ncBodies, position);
-		if (selectedBody) 
+		if (selectedBody)
 		{
 			Vector2 screen = ConvertWorldToScreen(selectedBody->position);
 			DrawCircleLines(screen.x, screen.y, ConvertWorldToPixel(selectedBody->mass) + 5, YELLOW);
@@ -157,7 +162,7 @@ int main(void)
 			}
 		}
 
-		/*if (IsKeyPressed(KEY_ONE)) 
+		/*if (IsKeyPressed(KEY_ONE))
 		{
 			FireworkOne();
 		}
@@ -172,34 +177,44 @@ int main(void)
 			FireworkThree();
 		}*/
 
-		//applyForce
-		ApplyGravitation(ncBodies, ncEditorData.GravitationValue);
-		ApplySpringForce(ncSprings);
+		timeAccumlator = timeAccumlator + dt;
 
-		//update bodies
-		for (ncBody* body = ncBodies; body; body = body->next) 
+		while (timeAccumlator >= fixedTimestep)
 		{
-			Step(body, dt);
-		}
+			//update bodies using fexed time delta
 
-		//collision
-		ncContact_t* contacts = NULL;
-		CreateContacts(ncBodies, &contacts);
-		SeparateContacts(contacts);
-		ResolveContacts(contacts);
+			//applyForce
+			ApplyGravitation(ncBodies, ncEditorData.GravitationValue);
+			ApplySpringForce(ncSprings);
+
+			//update bodies
+			for (ncBody* body = ncBodies; body; body = body->next)
+			{
+				Step(body, fixedTimestep);
+			}
+
+			//collision
+			ncContact_t* contacts = NULL;
+			CreateContacts(ncBodies, &contacts);
+			SeparateContacts(contacts);
+			ResolveContacts(contacts);
+
+			//decrement time accumlator by fixed time delta
+			timeAccumlator = timeAccumlator - fixedTimestep;
+		}
 
 		//render
 		BeginDrawing();
 		ClearBackground(BLACK);
 
 		//stats
-		DrawText(TextFormat("FPS: %.2f (%.2fms)", fps, 1000/fps), 10, 10, 20, LIME);
+		DrawText(TextFormat("FPS: %.2f (%.2fms)", fps, 1000 / fps), 10, 10, 20, LIME);
 		DrawText(TextFormat("Frame: %.4f", dt), 10, 30, 20, LIME);
 
 		//DrawCircle((int)position.x, (int)position.y, 20, PINK);
 
 		// draw bodies
-		for (ncBody* body = ncBodies; body; body = body->next) 
+		for (ncBody* body = ncBodies; body; body = body->next)
 		{
 			Vector2 screen = ConvertWorldToScreen(body->position);
 			DrawCircle((int)screen.x, (int)screen.y, ConvertWorldToPixel(body->mass * 0.5f), body->color);
