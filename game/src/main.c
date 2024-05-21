@@ -98,16 +98,16 @@
 
 int main(void)
 {
+	InitWindow(1280, 720, "Physics Engine");
+	InitEditor();
+	SetTargetFPS(60);
+
 	ncBody* selectedBody = NULL;
 	ncBody* connectBody = NULL;
 	ncContact_t* contacts = NULL;
 
-	float fixedTimestep = 1.0 / 50;
 	float timeAccumlator = 0;
 
-	InitWindow(1280, 720, "Physics Engine");
-	InitEditor();
-	SetTargetFPS(60);
 
 	//initialize world
 
@@ -115,6 +115,7 @@ int main(void)
 	while (!WindowShouldClose())
 	{
 		ncGravity = (Vector2){ 0, -ncEditorData.GravityValue };
+		float fixedTimestep = 1.0 / ncEditorData.TimestepValue;
 
 		//update
 		float dt = GetFrameTime();
@@ -140,7 +141,7 @@ int main(void)
 
 				body->damping = ncEditorData.DampingValue; // 2.5f;
 				body->gravityScale = ncEditorData.GravityScaleValue;
-				body->restitution = 0.8f;
+				body->restitution = ncEditorData.RestitutionValue;
 
 				body->color = PINK;
 
@@ -160,6 +161,24 @@ int main(void)
 					AddSpring(spring);
 				}
 			}
+
+			//move body
+			if (IsKeyDown(KEY_LEFT_ALT))
+			{
+				if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedBody) connectBody = selectedBody;
+				if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && connectBody) DrawLineBodyToPosition(connectBody, position);
+				if (connectBody)
+				{
+					Vector2 world = ConvertScreenToWorld(position);
+					ApplySpringForcePosition(world, connectBody, 0, 20, 10);
+				}
+			}
+
+			if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+			{
+				selectedBody = NULL;
+				connectBody = NULL;
+			}
 		}
 
 		/*if (IsKeyPressed(KEY_ONE))
@@ -177,10 +196,14 @@ int main(void)
 			FireworkThree();
 		}*/
 
-		timeAccumlator = timeAccumlator + dt;
+		if (ncEditorData.SimulateBtnActive)
+		{
+			timeAccumlator = timeAccumlator + dt;
+		}
 
 		while (timeAccumlator >= fixedTimestep)
 		{
+
 			//update bodies using fexed time delta
 
 			//applyForce
@@ -194,6 +217,7 @@ int main(void)
 			}
 
 			//collision
+			free(contacts);
 			ncContact_t* contacts = NULL;
 			CreateContacts(ncBodies, &contacts);
 			SeparateContacts(contacts);
@@ -201,6 +225,15 @@ int main(void)
 
 			//decrement time accumlator by fixed time delta
 			timeAccumlator = timeAccumlator - fixedTimestep;
+		}
+
+		//Resets the simulation by removing all bodies and springs
+		if (ncEditorData.ResetBtnPressed)
+		{
+			free(ncBodies);
+			free(ncSprings);
+			ncBodies = NULL;
+			ncSprings = NULL;
 		}
 
 		//render
