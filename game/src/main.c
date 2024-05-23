@@ -16,6 +16,8 @@
 
 //#define MAX_BODIES 10000
 
+//void DestoryAllBodies();
+
 //void FireworkOne() 
 //{
 //	Vector2 position = GetMousePosition();
@@ -162,7 +164,7 @@ int main(void)
 				}
 			}
 
-			//move body
+			//move body with mouse spring
 			if (IsKeyDown(KEY_LEFT_ALT))
 			{
 				if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedBody) connectBody = selectedBody;
@@ -170,7 +172,14 @@ int main(void)
 				if (connectBody)
 				{
 					Vector2 world = ConvertScreenToWorld(position);
-					ApplySpringForcePosition(world, connectBody, 0, 20, 10);
+					if (connectBody->type == BT_STATIC || connectBody->type == BT_KINEMATIC)
+					{
+						connectBody->position = world;
+					}
+					else
+					{
+						ApplySpringForcePosition(world, connectBody, 0, 20, 10);
+					}
 				}
 			}
 
@@ -230,8 +239,8 @@ int main(void)
 		//Resets the simulation by removing all bodies and springs
 		if (ncEditorData.ResetBtnPressed)
 		{
-			free(ncBodies);
-			free(ncSprings);
+			DestoryAllBodies();
+			DestoryAllSprings();
 			ncBodies = NULL;
 			ncSprings = NULL;
 		}
@@ -278,4 +287,18 @@ int main(void)
 	free(ncBodies);
 
 	return 0;
+}
+
+void DestroyAllBodies()
+{
+	if (!ncBodies) return;
+
+	ncBody* body = ncBodies;
+	while (body) {
+		ncBody* next = body->next;
+		free(body);
+		body = next;
+	}
+
+	ncBodies = NULL;
 }
